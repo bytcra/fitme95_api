@@ -14,6 +14,7 @@ class MeasurementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Measurement
         fields = '__all__'
+        read_only_fields = ["user"]
 
     def create(self, validated_data):
         waist_data = validated_data.pop('waist')

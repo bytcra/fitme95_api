@@ -1,5 +1,5 @@
 from django.db import models
-from .user import User
+from django.conf import settings
 
 
 class Waist(models.Model):
@@ -10,7 +10,7 @@ class Waist(models.Model):
 
 class Measurement(models.Model):
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="measurements", null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="measurements")
     weight = models.FloatField()
     waist = models.OneToOneField(Waist, on_delete=models.CASCADE, related_name='measurement')
     fat = models.FloatField()
