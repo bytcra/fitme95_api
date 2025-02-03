@@ -1,13 +1,12 @@
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
+
 from ..models.measurement import Measurement
 from ..serializers.measurement_serializer import MeasurementSerializer
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
 def create_measurement(request):
     data = request.data
 
@@ -19,7 +18,6 @@ def create_measurement(request):
 
 
 @api_view(['Get'])
-@permission_classes([IsAuthenticated])
 def get_measurements(request):
     try:
         measurements = Measurement.objects.filter(user=request.user)
@@ -35,7 +33,6 @@ def get_measurements(request):
 
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
 def update_measurement(request, measurement_id):
     try:
         measurement = Measurement.objects.get(id=measurement_id, user=request.user)
@@ -50,7 +47,6 @@ def update_measurement(request, measurement_id):
 
 
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
 def delete_measurement(request, measurement_id):
     try:
         measurement = Measurement.objects.get(id=measurement_id, user=request.user)
