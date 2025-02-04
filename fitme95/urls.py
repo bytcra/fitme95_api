@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import measurement_views
-from .views import user_view
+from .views import auth_views, user_views
 
 urlpatterns = [
     # Measurement
@@ -10,7 +10,8 @@ urlpatterns = [
     path('measurements/delete/<int:measurement_id>', measurement_views.delete_measurement, name='delete_measurement'),
 
     # Authentication
-    path('login', user_view.google_login, name='login'),
-    path('onboarding', user_view.setup_user_profile, name='setup_profile'),
-    path('user-info', user_view.user_info, name='user_info')
+    path('login', auth_views.google_login, name='login'),
+    path('user-info', auth_views.user_info, name='user_info'),
+
+    path('onboarding', user_views.setup_user_profile, name='setup_profile'),
 ]
