@@ -15,3 +15,9 @@ class UserProfile(models.Model):
     height = models.FloatField()
     age = models.FloatField()
     gender = models.CharField(max_length=10, choices=[('m', 'Male'), ('f', 'Female')], blank=True, null=True)
+
+    # Selected Measurements
+    waist_status = models.BooleanField(default=True)
+    chest_status = models.BooleanField(default=True)
+    fat_status = models.BooleanField(default=True)
+    weight_status = models.BooleanField(default=True)
