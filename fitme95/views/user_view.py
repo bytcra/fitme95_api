@@ -1,10 +1,13 @@
 from google.auth.transport import requests
 from google.oauth2 import id_token
+from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import status
+
 from ..models.user import CustomUser
-from rest_framework.authtoken.models import Token
+from ..models.user_profile import UserProfile
+from ..serializers.user_profile_serializer import UserProfileSerializer
 
 
 @api_view(['POST'])
@@ -38,7 +41,42 @@ def google_login(request):
         # Generate authentication token
         token, _ = Token.objects.get_or_create(user=user)
 
-        return Response({'message': 'Login successful', 'token': token.key, 'user': {'email': email, 'name': name}},
+        user_profile_exists = UserProfile.objects.filter(user=user).exists()
+
+        return Response({'message': 'Login successful', 'token': token.key,
+                         'user': {'email': email, 'name': name, 'onboarding': user_profile_exists,
+                                  }},
                         status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def setup_user_profile(request):
+    user = request.user  # Get the authenticated user
+
+    # Check if a profile exists, else create one with defaults
+    user_profile, created = UserProfile.objects.get_or_create(user=user, defaults=request.data)
+
+    if not created:
+        # If the profile already exists, update it with provided data
+        serializer = UserProfileSerializer(user_profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": 'User Profile Updated Successfully', "data": serializer.data},
+                            status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # If a new profile was created, return the created profile data
+    serializer = UserProfileSerializer(instance=user_profile)
+    return Response({"message": "User Profile Setup is completed", "data": serializer.data},
+                    status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+def user_info(request):
+    # Get user info
+    user = request.user
+    return Response(
+        {"message": 'User Information', "data": {'email': user.email, 'name': user.name}},
+        status=status.HTTP_200_OK)
