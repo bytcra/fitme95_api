@@ -1,9 +1,11 @@
 from google.auth.transport import requests
 from google.oauth2 import id_token
+from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import AccessToken
 
 from ..models.user import CustomUser
 from ..models.user_profile import UserProfile
@@ -44,15 +46,21 @@ def google_login(request):
         # Boolean to indicate if the onboarding setup is completed
         user_profile_exists = UserProfile.objects.filter(user=user).exists()
 
+        # Token Expiry Time in Milliseconds
+        token_expiry_ms = int(token.access_token.lifetime.total_seconds() * 1000)
+
         return Response({
             'message': 'Login successful',
-            'token': str(token.access_token),
-            'refresh_token': str(token),
-            'user': {
-                'email': email,
-                'name': name,
-                'onboarding': user_profile_exists,
-            }
+            'data': {
+                'token': str(token.access_token),
+                'refresh_token': str(token),
+                'expires_in': token_expiry_ms,
+                'user': {
+                    'id': google_id,
+                    'email': email,
+                    'name': name,
+                    'onboarding': user_profile_exists,
+                }}
         },
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
     except Exception as e:
@@ -63,12 +71,45 @@ def google_login(request):
 def user_info(request):
     # Get user info
     user = request.user
+
+    # Boolean to indicate if the onboarding setup is completed
+    user_profile_exists = UserProfile.objects.filter(user=user).exists()
+
     return Response(
         {
             "message": 'User Information',
             "data": {
-                'email': user.email,
-                'name': user.name
+                'user': {
+                    'id': user.google_id,
+                    'email': user.email,
+                    'name': user.name,
+                    'onboarding': user_profile_exists,
+                }
             }
         },
         status=status.HTTP_200_OK)
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+
+        if response.status_code == 200:
+            access_token = response.data.get("access")
+            refresh_token = response.data.get("refresh")
+
+            # Get token expiry time
+            token = AccessToken(access_token)
+
+            expires_in = int(token.lifetime.total_seconds() * 1000)
+
+            return Response({
+                "message": "Token refreshed successfully",
+                "data": {
+                    "token": access_token,
+                    "refresh_token": refresh_token,
+                    "expires_in": expires_in
+                }
+            }, status=status.HTTP_200_OK)
+
+        return response

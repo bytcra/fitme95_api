@@ -1,7 +1,7 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
 from .views import measurement_views
 from .views import auth_views, user_views
+from .views.auth_views import CustomTokenRefreshView
 
 urlpatterns = [
     # Measurement
@@ -13,7 +13,7 @@ urlpatterns = [
     # Authentication
     path('login', auth_views.google_login, name='login'),
     path('user-info', auth_views.user_info, name='user_info'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('refresh-token', CustomTokenRefreshView.as_view(), name='refresh_token'),
 
     path('onboarding', user_views.setup_user_profile, name='setup_profile'),
 ]
