@@ -14,7 +14,8 @@ class CustomUserManager(BaseUserManager):
 class CustomUser(AbstractBaseUser):
     google_id = models.CharField(max_length=255, primary_key=True)  # Google ID as primary key
     email = models.EmailField(unique=True)
-    name = models.CharField(max_length=255)
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255)
 
     objects = CustomUserManager()
 

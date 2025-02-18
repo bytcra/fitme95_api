@@ -29,7 +29,18 @@ def google_login(request):
         # User info
         email = google_info.get('email')
         google_id = google_info.get('sub')
-        name = google_info.get('name')
+        full_name = google_info.get('name', '')
+
+        # Try to get first and last name directly
+        first_name = google_info.get('given_name', '')
+        last_name = google_info.get('family_name', '')
+
+        # If first_name or last_name is missing, split full_name
+        if not first_name or not last_name:
+            name_parts = full_name.split()
+            first_name = name_parts[0] if name_parts else ''
+            last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+
 
         if not email:
             return Response({'error': 'Invalid token, email not found'}, status=status.HTTP_400_BAD_REQUEST)
@@ -37,7 +48,7 @@ def google_login(request):
         # Check if user already exists
         user, created = CustomUser.objects.get_or_create(
             google_id=google_id,
-            defaults={"name": name, "email": email}
+            defaults={"first_name": first_name, "last_name": last_name, "email": email}
         )
 
         # Generate authentication token
@@ -58,8 +69,9 @@ def google_login(request):
                 'user': {
                     'id': google_id,
                     'email': email,
-                    'name': name,
-                    'onboarding': user_profile_exists,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'is_onboarded': user_profile_exists,
                 }}
         },
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
@@ -82,8 +94,9 @@ def user_info(request):
                 'user': {
                     'id': user.google_id,
                     'email': user.email,
-                    'name': user.name,
-                    'onboarding': user_profile_exists,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name,
+                    'is_onboarded': user_profile_exists,
                 }
             }
         },
