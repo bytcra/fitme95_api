@@ -7,7 +7,7 @@ class UserProfile(models.Model):
     weight_unit = models.CharField(max_length=10, choices=[("kg", "Kilograms"), ("lbs", "Pounds")], default="kg")
     height_unit = models.CharField(max_length=10, choices=[("cm", "Centimeters"), ("ft", "Feet")], default="cm")
     distance_unit = models.CharField(max_length=10, choices=[("km", "Kilometers"), ("mi", "Miles")], default="cm")
-    other_unit = models.CharField(max_length=10, choices=[("cm", "Centimeters"), ("in", "Inches")], default="cm")
+    length_unit = models.CharField(max_length=10, choices=[("cm", "Centimeters"), ("in", "Inches")], default="cm")
 
     # User Info
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
@@ -17,7 +17,4 @@ class UserProfile(models.Model):
     gender = models.CharField(max_length=10, choices=[('m', 'Male'), ('f', 'Female')], blank=True, null=True)
 
     # Selected Measurements
-    waist_status = models.BooleanField(default=True)
-    chest_status = models.BooleanField(default=True)
-    fat_status = models.BooleanField(default=True)
-    weight_status = models.BooleanField(default=True)
+    selected_measurements = models.JSONField(default=list)
