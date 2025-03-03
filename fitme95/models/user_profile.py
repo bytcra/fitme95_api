@@ -13,8 +13,8 @@ class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     weight = models.FloatField()
     height = models.FloatField()
-    age = models.FloatField()
+    dob = models.CharField(max_length=8)
     gender = models.CharField(max_length=10, choices=[('m', 'Male'), ('f', 'Female')], blank=True, null=True)
 
     # Selected Measurements
-    selected_measurements = models.JSONField(default=list)
+    measurable_items = models.JSONField(default=list)
