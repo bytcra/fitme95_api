@@ -30,7 +30,7 @@ def setup_user_profile(request):
                 return fm_response(
                     status_code=status.HTTP_200_OK,
                     message="User Profile Updated Successfully",
-                    data=serializer.data
+                    data={'profile': serializer.data}
                 )
             return fm_response(
                 status_code=status.HTTP_400_BAD_REQUEST,
