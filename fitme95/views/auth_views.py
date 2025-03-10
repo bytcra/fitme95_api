@@ -12,6 +12,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from ..models.user import CustomUser
 from ..models.user_profile import UserProfile
+from ..serializers.user_profile_serializer import UserProfileSerializer
 from ..utils import fm_response
 
 
@@ -69,7 +70,11 @@ def google_login(request):
             token = RefreshToken.for_user(user)
 
             # Check if onboarding is completed
-            user_profile_exists = UserProfile.objects.filter(user=user).exists()
+            try:
+                user_profile = UserProfile.objects.get(user=user)
+                profile_data = UserProfileSerializer(user_profile).data  # Serialize profile data
+            except UserProfile.DoesNotExist:
+                profile_data = None
 
             # Token Expiry Time in Milliseconds
             token_expiry_ms = int(token.access_token.lifetime.total_seconds() * 1000)
@@ -86,7 +91,8 @@ def google_login(request):
                     'email': email,
                     'first_name': first_name,
                     'last_name': last_name,
-                    'is_onboarded': user_profile_exists,
+                    'is_onboarded': profile_data is not None,
+                    'profile': profile_data,
                 },
             },
         )
@@ -118,8 +124,11 @@ def user_info(request):
                 errors=["User authentication failed"]
             )
 
-        # Boolean to indicate if the onboarding setup is completed
-        user_profile_exists = UserProfile.objects.filter(user=user).exists()
+        try:
+            user_profile = UserProfile.objects.get(user=user)
+            profile_data = UserProfileSerializer(user_profile).data  # Serialize profile data
+        except UserProfile.DoesNotExist:
+            profile_data = None
 
         return fm_response(
             status_code=status.HTTP_200_OK,
@@ -130,7 +139,8 @@ def user_info(request):
                     'email': user.email,
                     'first_name': user.first_name,
                     'last_name': user.last_name,
-                    'is_onboarded': user_profile_exists,
+                    'is_onboarded': profile_data is not None,
+                    'profile': profile_data,
                 },
             }
         )
