@@ -46,7 +46,7 @@ def get_measurements(request):
             return fm_response(
                 status_code=status.HTTP_200_OK,
                 message="No measurements found. Please add a measurement",
-                data=[],
+                data={'measurements': []},
             )
 
         serializer = MeasurementSerializer(instance=measurements, many=True)
