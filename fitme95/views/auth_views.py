@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import AccessToken
+from django.db.utils import IntegrityError
 
 from ..models.user import CustomUser
 from ..models.user_profile import UserProfile
@@ -59,43 +60,56 @@ def google_login(request):
                 message="Email not found in token"
             )
 
+        try:
             # Atomic transaction to avoid partial updates
-        with transaction.atomic():
-            user, created = CustomUser.objects.get_or_create(
-                google_id=google_id,
-                defaults={"first_name": first_name, "last_name": last_name, "email": email}
+            with transaction.atomic():
+                user, created = CustomUser.objects.get_or_create(
+                    google_id=google_id,
+                    defaults={
+                        "first_name": first_name,
+                        "last_name": last_name,
+                        "email": email
+                    }
+                )
+
+                # Generate authentication token
+                token = RefreshToken.for_user(user)
+
+                # Check if onboarding is completed
+                try:
+                    user_profile = UserProfile.objects.get(user=user)
+                    profile_data = UserProfileSerializer(user_profile).data  # Serialize profile data
+                except UserProfile.DoesNotExist:
+                    profile_data = None
+
+                # Token Expiry Time in Milliseconds
+                token_expiry_ms = int(token.access_token.lifetime.total_seconds() * 1000)
+
+            status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+            return fm_response(
+                status_code=status_code,
+                message="Login successful",
+                data={
+                    'token': str(token.access_token),
+                    'refresh_token': str(token),
+                    'expires_in': token_expiry_ms,
+                    'user': {
+                        'id': google_id,
+                        'email': email,
+                        'first_name': first_name,
+                        'last_name': last_name,
+                        'is_onboarded': profile_data is not None,
+                        'profile': profile_data,
+                    },
+                },
             )
 
-            # Generate authentication token
-            token = RefreshToken.for_user(user)
-
-            # Check if onboarding is completed
-            try:
-                user_profile = UserProfile.objects.get(user=user)
-                profile_data = UserProfileSerializer(user_profile).data  # Serialize profile data
-            except UserProfile.DoesNotExist:
-                profile_data = None
-
-            # Token Expiry Time in Milliseconds
-            token_expiry_ms = int(token.access_token.lifetime.total_seconds() * 1000)
-        status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
-        return fm_response(
-            status_code=status_code,
-            message="Login successful",
-            data={
-                'token': str(token.access_token),
-                'refresh_token': str(token),
-                'expires_in': token_expiry_ms,
-                'user': {
-                    'id': google_id,
-                    'email': email,
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'is_onboarded': profile_data is not None,
-                    'profile': profile_data,
-                },
-            },
-        )
+        except IntegrityError as e:
+            return fm_response(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                message="Database error occurred",
+                errors=str(e)
+            )
 
     except AuthenticationFailed as e:
         return fm_response(
@@ -163,7 +177,22 @@ def user_info(request):
 class CustomTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         try:
-            response = super().post(request, *args, **kwargs)
+            # Check if refresh token is provided
+            if 'refresh' not in request.data:
+                return fm_response(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    message="Missing refresh token",
+                    errors={'refresh': 'This field is required'}
+                )
+
+            try:
+                response = super().post(request, *args, **kwargs)
+            except TokenError as e:
+                return fm_response(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    message="Invalid or expired refresh token",
+                    errors=str(e)
+                )
 
             if response.status_code == 200:
                 access_token = response.data.get("access")
@@ -187,13 +216,6 @@ class CustomTokenRefreshView(TokenRefreshView):
                 status_code=response.status_code,
                 message="Token refresh failed",
                 errors=response.data.get("detail", "Unknown error")
-            )
-
-        except TokenError as e:
-            return fm_response(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                message="Invalid or expired refresh token",
-                errors=str(e)
             )
 
         except Exception as e:
