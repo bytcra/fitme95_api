@@ -14,7 +14,7 @@ class Measurement(models.Model):
     waist = models.OneToOneField(Waist, on_delete=models.CASCADE, related_name='measurement')
     body_fat = models.FloatField()
     chest = models.FloatField()
-    date = models.DateTimeField(auto_now_add=True)
+    date = models.DateTimeField(auto_now_add=False)
 
     def delete(self, *args, **kwargs):
         self.waist.delete()
