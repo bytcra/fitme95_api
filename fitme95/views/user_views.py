@@ -1,7 +1,6 @@
 from django.db import IntegrityError
 from rest_framework import status
 from rest_framework.decorators import api_view
-from rest_framework.response import Response
 
 from ..models.user_profile import UserProfile
 from ..serializers.user_profile_serializer import UserProfileSerializer
@@ -19,8 +18,26 @@ def setup_user_profile(request):
         )
 
     try:
-        # Check if a profile exists, else create one with defaults
-        user_profile, created = UserProfile.objects.get_or_create(user=user, defaults=request.data)
+        # Check if a profile exists
+        try:
+            user_profile = UserProfile.objects.get(user=user)
+            created = False
+        except UserProfile.DoesNotExist:
+            # For new profiles, validate all required fields
+            serializer = UserProfileSerializer(data=request.data)
+            if not serializer.is_valid():
+                return fm_response(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    message="Invalid profile data",
+                    errors=serializer.errors
+                )
+            # Create new profile with validated data
+            serializer.save(user=user)
+            return fm_response(
+                status_code=status.HTTP_201_CREATED,
+                message="User Profile Setup Completed",
+                data=serializer.data
+            )
 
         if not created:
             # If the profile already exists, update it with provided data
@@ -38,16 +55,15 @@ def setup_user_profile(request):
                 errors=serializer.errors,
             )
 
-        # If a new profile was created, return the created profile data
-        serializer = UserProfileSerializer(instance=user_profile)
-        return fm_response(
-            status_code=status.HTTP_201_CREATED,
-            message="User Profile Setup Completed",
-            data=serializer.data
-        )
     except IntegrityError as e:
         return fm_response(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             message="Database integrity error occurred while saving user profile",
+            errors=str(e)
+        )
+    except Exception as e:
+        return fm_response(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            message="An error occurred while processing your request",
             errors=str(e)
         )
