@@ -2,6 +2,7 @@ from django.urls import path
 from .views import measurement_views
 from .views import auth_views, user_views
 from .views.auth_views import CustomTokenRefreshView
+from .views import health_check
 
 urlpatterns = [
     # Measurement
@@ -16,4 +17,6 @@ urlpatterns = [
     path('refresh-token', CustomTokenRefreshView.as_view(), name='refresh_token'),
 
     path('onboarding', user_views.setup_user_profile, name='setup_profile'),
+
+    path('health', health_check, name='health_check'),
 ]

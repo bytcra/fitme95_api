@@ -35,3 +35,4 @@ typing_extensions==4.12.2
 uritemplate==4.1.1
 urllib3==2.3.0
 uvicorn==0.34.0
+drf-yasg==1.21.10
