@@ -10,6 +10,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework_simplejwt.tokens import AccessToken
 from django.db.utils import IntegrityError
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from ..models.user import CustomUser
 from ..models.user_profile import UserProfile
@@ -17,6 +19,24 @@ from ..serializers.user_profile_serializer import UserProfileSerializer
 from ..utils import fm_response
 
 
+@swagger_auto_schema(
+    method='post',
+    operation_description="Login a user using a Google ID token. Returns access & refresh tokens.",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['id'],
+        properties={
+            'id': openapi.Schema(type=openapi.TYPE_STRING, description='Google ID Token')
+        }
+    ),
+    responses={
+        200: "Login successful",
+        201: "User created and login successful",
+        400: "Bad request (e.g. missing ID token)",
+        401: "Invalid token or authentication failed",
+        500: "Internal server or database error"
+    }
+)
 @api_view(['POST'])
 @permission_classes([])
 def google_login(request):
@@ -126,6 +146,16 @@ def google_login(request):
         )
 
 
+@swagger_auto_schema(
+    method='get',
+    operation_description="Fetch current authenticated user profile information.",
+    responses={
+        200: "User info retrieved successfully",
+        401: "Unauthorized access",
+        404: "User not found",
+        500: "Server error"
+    }
+)
 @api_view(['GET'])
 def user_info(request):
     try:
@@ -174,6 +204,22 @@ def user_info(request):
         )
 
 
+@swagger_auto_schema(
+    operation_description="Refresh the access token using a valid refresh token.",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['refresh'],
+        properties={
+            'refresh': openapi.Schema(type=openapi.TYPE_STRING, description='Refresh token')
+        }
+    ),
+    responses={
+        200: "Token refreshed successfully",
+        400: "Missing refresh token",
+        401: "Invalid or expired refresh token",
+        500: "Internal server error"
+    }
+)
 class CustomTokenRefreshView(TokenRefreshView):
     def post(self, request, *args, **kwargs):
         try:
