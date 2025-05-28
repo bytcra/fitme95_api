@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import measurement_views
+from .views import measurement_views, routine_view
 from .views import auth_views, user_views
 from .views.auth_views import CustomTokenRefreshView
 from .views import health_check
@@ -19,4 +19,10 @@ urlpatterns = [
     path('onboarding', user_views.setup_user_profile, name='setup_profile'),
 
     path('health', health_check, name='health_check'),
+
+    # Routines
+    path('routines', routine_view.get_routines, name='get-routines'),
+    path('routines/create', routine_view.create_routine, name='create-routines'),
+    path('routines/update/<uuid:pk>', routine_view.update_routine, name='update-routines'),
+    path('routines/delete/<uuid:pk>', routine_view.delete_routine, name='delete-routines'),
 ]
