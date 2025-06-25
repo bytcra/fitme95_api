@@ -4,7 +4,10 @@ from rest_framework import status
 
 from fitme95.utils import fm_response
 from ..models.routine import Routine
+from ..models.task import Task
 from ..serializers.routine_serializer import RoutineSerializer
+from ..serializers.task_serializer import TaskSerializer
+
 
 @api_view(['GET'])
 def get_routines(request):
@@ -28,6 +31,7 @@ def get_routines(request):
             message="An error occurred while fetching routines",
             errors=str(e)
         )
+
 
 @api_view(['POST'])
 def create_routine(request):
@@ -56,6 +60,36 @@ def create_routine(request):
         message="Invalid routine data",
         errors=serializer.errors
     )
+
+
+@api_view(['POST'])
+def update_routine_task(request, task_id):
+    try:
+        task = Task.objects.get(
+            id=task_id,
+            routine__user=request.user
+        )
+        new_status = request.data.get('status')
+        if new_status not in dict(Task.STATUS_CHOICES):
+            return fm_response(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                message="Invalid status value"
+            )
+
+        task.status = new_status
+        task.save()
+
+        return fm_response(
+            status_code=status.HTTP_200_OK,
+            message="Task status updated successfully",
+            data={'task': TaskSerializer(task).data}
+        )
+    except Task.DoesNotExist:
+        return fm_response(
+            status_code=status.HTTP_404_NOT_FOUND,
+            message="Task not found"
+        )
+
 
 @api_view(['PUT'])
 def update_routine(request, pk):
@@ -92,6 +126,7 @@ def update_routine(request, pk):
         message="Invalid routine data",
         errors=serializer.errors
     )
+
 
 @api_view(['DELETE'])
 def delete_routine(request, pk):
